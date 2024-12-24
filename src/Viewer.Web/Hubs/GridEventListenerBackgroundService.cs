@@ -64,13 +64,15 @@ namespace Viewer
         private async Task WebPubSubClient_ServerMessageReceived(WebPubSubServerMessageEventArgs arg)
         {
             _logger.LogDebug("WebPubSubClient server message received");
-            await _hubContext.Clients.All.SendAsync("gridupdate", arg.Message.Data);
+            string json = arg.Message.Data.ToString();
+            await _hubContext.Clients.All.SendAsync("gridupdate", json);
         }
 
         private async Task WebPubSubClient_GroupMessageReceived(WebPubSubGroupMessageEventArgs arg)
         {
             _logger.LogDebug("WebPubSubClient message received for group {GroupId}", arg.Message.Group);
-            await _hubContext.Clients.All.SendAsync("gridupdate", arg.Message.Data);
+            string json = arg.Message.Data.ToString();
+            await _hubContext.Clients.All.SendAsync("gridupdate", json);
         }
     }
 }

@@ -88,8 +88,9 @@
                 .build();
 
             hubConnection.start().catch(err => console.error(err.toString()));
-            hubConnection.on('gridupdate', function (id, eventType, subject, eventTime, data) {
-                addEvent(id, eventType, subject, eventTime, data);
+            hubConnection.on('gridupdate', function (data) {
+                const eventData = JSON.parse(data);
+                addEvent(eventData.id, eventData.eventType, eventData.subject, eventData.eventTime, data);
             });
         };
 
