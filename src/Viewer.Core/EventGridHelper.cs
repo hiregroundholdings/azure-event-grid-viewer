@@ -6,6 +6,7 @@
     using System.Linq;
     using System.Text.Json;
     using System.Text.Json.Nodes;
+    using System.Text.Json.Serialization;
     using Viewer.Models;
 
     public static class EventGridHelper
@@ -14,6 +15,8 @@
         {
             PropertyNameCaseInsensitive = true,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false,
+            DefaultIgnoreCondition = JsonIgnoreCondition.Never,
         };
 
         public static bool TryParseGridEvents<T>(string jsonContent, [NotNullWhen(true)] out IEnumerable<GridEvent<T>> events)
@@ -28,7 +31,7 @@
                 {
                     if (@event?.Deserialize<GridEvent<T>>(serializerOptions) is GridEvent<T> details)
                     {
-                        details.RawEvent = @event.ToString();
+                        details.RawEvent = @event.ToJsonString();
                         results.Add(details);
                     }
                 }
@@ -38,7 +41,7 @@
                 try
                 {
                     GridEvent<T> gridEvent = jsonObject.Deserialize<GridEvent<T>>(serializerOptions)!;
-                    gridEvent.RawEvent = jsonObject.ToString();
+                    gridEvent.RawEvent = jsonObject.ToJsonString();
                     results.Add(gridEvent);
                 }
                 catch (JsonException)
@@ -80,7 +83,7 @@
                 return false;
             }
 
-            cloudEvent.RawEvent = parsedJson?.ToString() ?? jsonContent;
+            cloudEvent.RawEvent = parsedJson?.ToJsonString() ?? jsonContent;
             return true;
         }
 
