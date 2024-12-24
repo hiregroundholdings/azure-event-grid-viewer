@@ -68,9 +68,11 @@
         public static bool TryParseCloudEvent<T>(string jsonContent, [NotNullWhen(true)] out CloudEvent<T>? cloudEvent)
             where T : class
         {
+            JsonNode? parsedJson;
             try
             {
-                cloudEvent = JsonSerializer.Deserialize<CloudEvent<T>>(jsonContent, serializerOptions) ?? new();
+                parsedJson = JsonNode.Parse(jsonContent);
+                cloudEvent = parsedJson?.Deserialize<CloudEvent<T>>(serializerOptions) ?? new();
             }
             catch (JsonException)
             {
@@ -78,7 +80,7 @@
                 return false;
             }
 
-            cloudEvent.RawEvent = jsonContent;
+            cloudEvent.RawEvent = parsedJson?.ToString() ?? jsonContent;
             return true;
         }
 
