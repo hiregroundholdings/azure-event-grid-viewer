@@ -1,20 +1,18 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.IO;
-using System.Threading.Tasks;
-using System.Net;
-using System.Text;
-using System.Net.Http;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.AspNetCore.Mvc;
-using viewer.Hubs;
-using viewer.Models;
-
-namespace viewer.Controllers
+﻿namespace Viewer.Web.Controllers
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.IO;
+    using System.Threading.Tasks;
+    using System.Text;
+    using Microsoft.AspNetCore.SignalR;
+    using Microsoft.AspNetCore.Mvc;
+    using Viewer.Web.Hubs;
+    using System.Text.Json;
+    using Viewer.Models;
+    using System.Text.Json.Nodes;
+
     [Route("api/[controller]")]
     public class UpdatesController : Controller
     {
@@ -84,7 +82,7 @@ namespace viewer.Controllers
                     return await HandleGridEvents(jsonContent);
                 }
 
-                return BadRequest();                
+                return BadRequest();
             }
         }
 
@@ -94,16 +92,14 @@ namespace viewer.Controllers
 
         private async Task<JsonResult> HandleValidation(string jsonContent)
         {
-            var gridEvent =
-                JsonConvert.DeserializeObject<List<GridEvent<Dictionary<string, string>>>>(jsonContent)
-                    .First();
+            var gridEvent = JsonSerializer.Deserialize<List<GridEvent<Dictionary<string, string>>>>(jsonContent)?[0];
 
             await this._hubContext.Clients.All.SendAsync(
                 "gridupdate",
                 gridEvent.Id,
                 gridEvent.EventType,
                 gridEvent.Subject,
-                gridEvent.EventTime.ToLongTimeString(),
+                gridEvent.EventTime.ToString(),
                 jsonContent.ToString());
 
             // Retrieve the validation code and echo back.
@@ -116,18 +112,18 @@ namespace viewer.Controllers
 
         private async Task<IActionResult> HandleGridEvents(string jsonContent)
         {
-            var events = JArray.Parse(jsonContent);
+            var events = JsonNode.Parse(jsonContent)?.AsArray();
             foreach (var e in events)
             {
                 // Invoke a method on the clients for 
                 // an event grid notiification.                        
-                var details = JsonConvert.DeserializeObject<GridEvent<dynamic>>(e.ToString());
+                var details = e.Deserialize<GridEvent<dynamic>>();
                 await this._hubContext.Clients.All.SendAsync(
                     "gridupdate",
                     details.Id,
                     details.EventType,
                     details.Subject,
-                    details.EventTime.ToLongTimeString(),
+                    details.EventTime.ToString(),
                     e.ToString());
             }
 
@@ -136,8 +132,8 @@ namespace viewer.Controllers
 
         private async Task<IActionResult> HandleCloudEvent(string jsonContent)
         {
-            var details = JsonConvert.DeserializeObject<CloudEvent<dynamic>>(jsonContent);
-            var eventData = JObject.Parse(jsonContent);
+            var details = JsonSerializer.Deserialize<CloudEvent<dynamic>>(jsonContent);
+            var eventData = JsonNode.Parse(jsonContent);
 
             await this._hubContext.Clients.All.SendAsync(
                 "gridupdate",
@@ -159,10 +155,10 @@ namespace viewer.Controllers
             try
             {
                 // Attempt to read one JSON object. 
-                var eventData = JObject.Parse(jsonContent);
+                var eventData = JsonNode.Parse(jsonContent);
 
                 // Check for the spec version property.
-                var version = eventData["specversion"].Value<string>();
+                var version = eventData["specversion"].AsValue().ToString();
                 if (!string.IsNullOrEmpty(version)) return true;
             }
             catch (Exception e)
